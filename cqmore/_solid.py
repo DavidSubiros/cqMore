@@ -1,3 +1,4 @@
+import time
 from typing import Iterable, Union, cast
 
 from OCP.BRepOffset import BRepOffset_MakeOffset, BRepOffset_Skin # type: ignore
@@ -14,20 +15,33 @@ from .polyhedron import hull
 import numpy
 
 
-def makePolyhedron(points: Iterable[VectorLike], faces: Iterable[FaceIndices]) -> Solid:
+def makePolyhedron(points: Iterable[VectorLike], faces: Iterable[FaceIndices], debug: bool = False) -> Solid:
     vectors = numpy.array(toVectors(points))
 
-    return Solid.makeSolid(
-        Shell.makeShell(
-            Face.makeFromWires(
-                Wire.assembleEdges(
-                    Edge.makeLine(*vts[[-1 + i, i]]) for i in range(vts.size)
-                )
+    # Create the faces using CadQuery
+    print(f'[makePolyhedron] num of faces: {len(faces)} , num of points: {len(points)}') if debug else None
+    t0 = time.time()
+    shell_faces = [
+        Face.makeFromWires(
+            Wire.assembleEdges(
+                Edge.makeLine(*vts[[-1 + i, i]]) for i in range(vts.size)
             )
-            for vts in (vectors[list(face)] for face in faces)
         )
-    )
-    
+        for vts in (vectors[list(face)] for face in faces)
+    ]
+    print("- shell_faces: %s sec" % (time.time() - t0)) if debug else None
+
+    # Make Shell
+    t1 = time.time()
+    shell = Shell.makeShell(shell_faces)
+    print("- makeShell: %s sec" % (time.time() - t1)) if debug else None
+
+    # Make Solid
+    t2 = time.time()
+    s = Solid.makeSolid(shell)
+    print("- makeSolid: %s sec" % (time.time() - t2)) if debug else None
+
+    return s
 
 def polylineJoin(points: Iterable[VectorLike], join: Union[T, Solid, Compound]) -> Union[Solid, Compound]:
     if isinstance(join, Workplane):

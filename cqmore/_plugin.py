@@ -336,6 +336,12 @@ class Workplane(cadquery.Workplane):
 
 
 def _solid_each_combine_clean(workplane, solid, combine, clean):
+    """
+    for each workplane point, move the solid to that location,
+    and then run workplane union.
+    Note: solid.moved(loc) is very inefficient for solids with lots of faces,
+    so this method is not recommended for things like importing large STLs.
+    """
     all = workplane.eachpoint(lambda loc: solid.moved(loc), True)
     if not combine:
         return all
